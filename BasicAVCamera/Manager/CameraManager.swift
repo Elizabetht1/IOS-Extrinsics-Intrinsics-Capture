@@ -101,7 +101,7 @@ class CameraManager: NSObject {
     }()
     
     // for preview device output
-    var isPreviewPaused = false
+    var isPreviewPaused = true
 
     private var addToPreviewStream: ((CIImage) -> Void)?
     

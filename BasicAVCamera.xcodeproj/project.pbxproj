@@ -20,6 +20,8 @@
 		984126262BF9855A00553F53 /* SaveVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984126252BF9855A00553F53 /* SaveVideoView.swift */; };
 		984126282BF9863500553F53 /* PhotoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984126272BF9863500553F53 /* PhotoData.swift */; };
 		9841262D2BF9A89900553F53 /* CameraMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9841262C2BF9A89900553F53 /* CameraMode.swift */; };
+		9F659CD62F42A1FC003A279F /* CameraCalibrationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F659CD52F42A1F8003A279F /* CameraCalibrationData.swift */; };
+		9F659CD82F42A2EC003A279F /* ARSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F659CD72F42A2E9003A279F /* ARSessionManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +40,9 @@
 		984126272BF9863500553F53 /* PhotoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoData.swift; sourceTree = "<group>"; };
 		9841262C2BF9A89900553F53 /* CameraMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraMode.swift; sourceTree = "<group>"; };
 		9841262E2BF9DA1C00553F53 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9F659CD52F42A1F8003A279F /* CameraCalibrationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCalibrationData.swift; sourceTree = "<group>"; };
+		9F659CD72F42A2E9003A279F /* ARSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARSessionManager.swift; sourceTree = "<group>"; };
+		9F659CD92F42B941003A279F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +76,7 @@
 		984125E72BF9804000553F53 /* BasicAVCamera */ = {
 			isa = PBXGroup;
 			children = (
+				9F659CD92F42B941003A279F /* Info.plist */,
 				9841261E2BF982AE00553F53 /* Model */,
 				9841261D2BF982A500553F53 /* View */,
 				9841261A2BF9829400553F53 /* Manager */,
@@ -92,6 +98,7 @@
 		9841261A2BF9829400553F53 /* Manager */ = {
 			isa = PBXGroup;
 			children = (
+				9F659CD72F42A2E9003A279F /* ARSessionManager.swift */,
 				984126142BF9826A00553F53 /* CameraManager.swift */,
 				984126152BF9826A00553F53 /* PhotoLibraryManager.swift */,
 			);
@@ -113,6 +120,7 @@
 		9841261E2BF982AE00553F53 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				9F659CD52F42A1F8003A279F /* CameraCalibrationData.swift */,
 				984126122BF9826A00553F53 /* CameraModel.swift */,
 				984126272BF9863500553F53 /* PhotoData.swift */,
 				9841262C2BF9A89900553F53 /* CameraMode.swift */,
@@ -195,10 +203,12 @@
 				984126192BF9826A00553F53 /* PhotoLibraryManager.swift in Sources */,
 				984126162BF9826A00553F53 /* CameraModel.swift in Sources */,
 				984126172BF9826A00553F53 /* CameraView.swift in Sources */,
+				9F659CD62F42A1FC003A279F /* CameraCalibrationData.swift in Sources */,
 				984126262BF9855A00553F53 /* SaveVideoView.swift in Sources */,
 				9841262D2BF9A89900553F53 /* CameraMode.swift in Sources */,
 				984126282BF9863500553F53 /* PhotoData.swift in Sources */,
 				984126182BF9826A00553F53 /* CameraManager.swift in Sources */,
+				9F659CD82F42A2EC003A279F /* ARSessionManager.swift in Sources */,
 				984126222BF9835F00553F53 /* ImageView.swift in Sources */,
 				984126202BF9832000553F53 /* SaveImageView.swift in Sources */,
 			);
@@ -337,6 +347,8 @@
 				DEVELOPMENT_TEAM = 6Y63PMAAGM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BasicAVCamera/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera Usage";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Photo Library Usage";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -368,6 +380,8 @@
 				DEVELOPMENT_TEAM = 6Y63PMAAGM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BasicAVCamera/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera Usage";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Photo Library Usage";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

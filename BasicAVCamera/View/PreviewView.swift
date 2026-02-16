@@ -35,7 +35,8 @@ struct PreviewView: View {
                             // Start camera when preview appears
                             Task {
                                 print("📷 PreviewView appeared - starting camera")
-                                await model.camera.start()
+//                                await model.camera.start()
+                                model.arSession.start()
                             }
                         }
 
@@ -137,8 +138,8 @@ struct PreviewView: View {
 //                            model.camera.stopRecordingVideo()
                             model.stopRecordingVideo()
                             
-                            model.useARPreview = false  // Switch back to camera
-                            model.camera.resumePreview()
+//                            model.useARPreview = false  // Switch back to camera
+//                            model.camera.resumePreview()
                             // Resume camera preview
 //                            model.camera.resumePreview()
                             
@@ -146,20 +147,18 @@ struct PreviewView: View {
                             isRecording = true
                             print("🔴 Starting video recording")
                             
-                            model.camera.pausePreview()
-                            model.useARPreview = true  // Switch to AR preview
+//                            model.camera.pausePreview()
+//                            model.useARPreview = true  // Switch to AR preview
                             
     
                            
                             // Just pause preview, don't stop session
-//                            model.camera.pausePreview()c
+//                            model.camera.pausePreview()
                             
                             Task {
-                                
-                               
-                            
-                                
-                                try? await Task.sleep(nanoseconds: 500_000_000)
+            
+            
+//                                try? await Task.sleep(nanoseconds: 500_000_000)
                                 
                                 
                                 
@@ -168,7 +167,7 @@ struct PreviewView: View {
                                 
                                 print("📷 Starting camera video")
                                 model.startRecordingVideo()
-//                                model.arSession.startRecordingVideo()
+//                              model.arSession.startRecordingVideo()
                             }
                         }
                     } label: {

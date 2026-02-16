@@ -20,10 +20,12 @@ struct CameraView: View {
             } else {
                 PreviewView()
                     .onAppear {
-                        model.camera.isPreviewPaused = false
+//                        model.camera.isPreviewPaused = false
+                        model.useARPreview = true
                     }
                     .onDisappear {
-                        model.camera.isPreviewPaused = true
+//                        model.camera.isPreviewPaused = true
+                        model.useARPreview = false
                     }
             }
 

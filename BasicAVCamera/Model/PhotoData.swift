@@ -1,8 +1,8 @@
 //
-//  PhotoData.swift
+//  PhotoData.swift (Updated)
 //  BasicAVCamera
 //
-//  Created by Itsuki on 2024/05/19.
+//  Updated to include calibration data
 //
 
 import SwiftUI
@@ -11,4 +11,7 @@ struct PhotoData {
     var image: Image
     var imageData: Data
     var imageSize: (width: Int, height: Int)
+    
+    // AR Calibration data
+    var calibrationData: CameraCalibrationData?
 }

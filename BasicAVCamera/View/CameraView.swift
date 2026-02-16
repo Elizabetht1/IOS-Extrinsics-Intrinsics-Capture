@@ -1,10 +1,9 @@
 //
-//  CameraView.swift
-//  SwiftUIDemo2
+//  CameraView.swift (Updated)
+//  BasicAVCamera
 //
-//  Created by Itsuki on 2024/05/18.
+//  Updated to start AR session
 //
-
 
 import SwiftUI
 
@@ -30,7 +29,15 @@ struct CameraView: View {
 
         }
         .task {
-            await model.camera.start()
+            // Start both camera and AR session
+            
+            model.arSession.start()  // NEW: Start AR session
+//            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 sec
+//            await model.camera.start()
+        }
+        .onDisappear {
+            // Stop AR session when view disappears
+            model.arSession.stop()  // NEW: Stop AR session
         }
         .ignoresSafeArea(.all)
         .environmentObject(model)
@@ -40,10 +47,6 @@ struct CameraView: View {
 
 #Preview {
     @StateObject var model = CameraModel()
-//    model.photoToken = Image(systemName: "checkmark")
-
-//    CameraView()
     return SaveImageView()
         .environmentObject(model)
-
 }

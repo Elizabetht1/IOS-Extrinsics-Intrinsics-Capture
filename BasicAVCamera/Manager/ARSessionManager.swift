@@ -19,6 +19,25 @@ class ARSessionManager: NSObject, ObservableObject {
     @Published var isRunning = false
     @Published var trackingState: ARCamera.TrackingState = .notAvailable
     
+    // Video recording properties
+    private var videoWriter: AVAssetWriter?
+    private var videoWriterInput: AVAssetWriterInput?
+    private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    private var isRecordingVideo = false
+    private var videoStartTime: CMTime?
+    private var videoOutputURL: URL?
+    
+    // Stream for video URLs (replaces movieFileStream from CameraManager)
+    private var addToVideoStream: ((URL) -> Void)?
+    
+    lazy var videoStream: AsyncStream<URL> = {
+        AsyncStream { continuation in
+            addToVideoStream = { url in
+                continuation.yield(url)
+            }
+        }
+    }()
+
     // MARK: - Calibration Data Streams
     
     private var addToCalibrationStream: ((CameraCalibrationData) -> Void)?
@@ -172,53 +191,165 @@ class ARSessionManager: NSObject, ObservableObject {
         try data.write(to: fileURL)
         print("Saved calibration data to: \(fileURL.path)")
     }
+    
+    // MARK: - Video Recording
+        
+    func startRecordingVideo() {
+        guard !isRecordingVideo else { return }
+        
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Create output URL
+            guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("❌ Cannot access documents directory")
+                return
+            }
+            
+            let fileName = UUID().uuidString + ".mp4"
+            let url = directory.appendingPathComponent(fileName)
+            self.videoOutputURL = url
+            
+            // Setup AVAssetWriter
+            do {
+                let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+                
+                // Video settings - match AR camera resolution
+                let videoSettings: [String: Any] = [
+                    AVVideoCodecKey: AVVideoCodecType.h264,
+                    AVVideoWidthKey: 1920,
+                    AVVideoHeightKey: 1440,
+                    AVVideoCompressionPropertiesKey: [
+                        AVVideoAverageBitRateKey: 6000000
+                    ]
+                ]
+                
+                let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+                writerInput.expectsMediaDataInRealTime = true
+                
+                // Pixel buffer adaptor
+                let sourcePixelBufferAttributes: [String: Any] = [
+                    kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                    kCVPixelBufferWidthKey as String: 1920,
+                    kCVPixelBufferHeightKey as String: 1440
+                ]
+                
+                let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+                    assetWriterInput: writerInput,
+                    sourcePixelBufferAttributes: sourcePixelBufferAttributes
+                )
+                
+                if writer.canAdd(writerInput) {
+                    writer.add(writerInput)
+                }
+                
+                self.videoWriter = writer
+                self.videoWriterInput = writerInput
+                self.pixelBufferAdaptor = adaptor
+                self.isRecordingVideo = true
+                self.videoStartTime = nil
+                
+                writer.startWriting()
+                
+                print("✅ AR video recording started")
+                
+            } catch {
+                print("❌ Failed to create AVAssetWriter: \(error)")
+            }
+        }
+    }
+    
+    func stopRecordingVideo() {
+        guard isRecordingVideo else { return }
+        
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.isRecordingVideo = false
+            
+            guard let writer = self.videoWriter,
+                  let writerInput = self.videoWriterInput else {
+                print("❌ No video writer to stop")
+                return
+            }
+            
+            writerInput.markAsFinished()
+            
+            writer.finishWriting { [weak self] in
+                guard let self = self else { return }
+                
+                if writer.status == .completed,
+                   let outputURL = self.videoOutputURL {
+                    print("✅ AR video recorded to \(outputURL)")
+                    self.addToVideoStream?(outputURL)
+                } else if let error = writer.error {
+                    print("❌ Video writing failed: \(error)")
+                } else {
+                    print("❌ Video writing failed with status: \(writer.status.rawValue)")
+                }
+                
+                // Cleanup
+                self.videoWriter = nil
+                self.videoWriterInput = nil
+                self.pixelBufferAdaptor = nil
+                self.videoStartTime = nil
+                self.videoOutputURL = nil
+            }
+        }
+    }
 }
 
 // MARK: - ARSessionDelegate
 
 extension ARSessionManager: ARSessionDelegate {
     
-//    func session(_ session: ARSession, didUpdate frame: ARFrame) {
-//        // Update tracking state
-//        DispatchQueue.main.async { [weak self] in
-//            self?.trackingState = frame.camera.trackingState
-//        }
-//        
-//        // Create calibration data
-//        let calibrationData = CameraCalibrationData(from: frame, frameIndex: isRecordingCalibration ? frameCounter : nil)
-//        
-//        // Add to stream for real-time monitoring
-//        addToCalibrationStream?(calibrationData)
-//        
-//        // If recording for video, collect frames
-//        if isRecordingCalibration {
-//            calibrationFrames.append(calibrationData)
-//            frameCounter += 1
-//        }
-//    }
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        DispatchQueue.main.async { [weak self] in
-            self?.trackingState = frame.camera.trackingState
-        }
-        
-        // Create calibration IMMEDIATELY, don't hold ARFrame
-        let calibrationData = CameraCalibrationData(from: frame, frameIndex: isRecordingCalibration ? frameCounter : nil)
-        
-        addToCalibrationStream?(calibrationData)
-        
-        if isRecordingCalibration {
-            calibrationFrames.append(calibrationData)
-            frameCounter += 1
-            
-            // Add this debug log
-            if frameCounter % 30 == 0 {  // Log every 30 frames (~0.5 sec at 60fps)
-                print("📊 AR Recording: \(frameCounter) frames captured")
+            if frameCounter == 0 && isRecordingCalibration {
+                print("✅ First AR frame received while recording!")
             }
             
+            DispatchQueue.main.async { [weak self] in
+                self?.trackingState = frame.camera.trackingState
+            }
+            
+            let calibrationData = CameraCalibrationData(from: frame, frameIndex: isRecordingCalibration ? frameCounter : nil)
+            
+            addToCalibrationStream?(calibrationData)
+            
+            if isRecordingCalibration {
+                calibrationFrames.append(calibrationData)
+                frameCounter += 1
+                
+                if frameCounter % 30 == 0 {
+                    print("📊 AR Recording: \(frameCounter) frames captured")
+                }
+            }
+            
+            // NEW: Write video frame if recording
+            if isRecordingVideo {
+                writeVideoFrame(frame)
+            }
         }
-        // ARFrame is released here - not retained
-    }
-    
+        
+        private func writeVideoFrame(_ frame: ARFrame) {
+            guard let writerInput = videoWriterInput,
+                  let adaptor = pixelBufferAdaptor,
+                  writerInput.isReadyForMoreMediaData else {
+                return
+            }
+            
+            let pixelBuffer = frame.capturedImage
+            let timestamp = CMTime(seconds: frame.timestamp, preferredTimescale: 600)
+            
+            // Start session on first frame
+            if videoStartTime == nil {
+                videoWriter?.startSession(atSourceTime: timestamp)
+                videoStartTime = timestamp
+            }
+            
+            // Append pixel buffer
+            adaptor.append(pixelBuffer, withPresentationTime: timestamp)
+        }
     func session(_ session: ARSession, didFailWithError error: Error) {
         print("AR Session failed: \(error.localizedDescription)")
     }

@@ -26,7 +26,7 @@ class CameraModel: ObservableObject {
     @Published var currentCalibrationData: CameraCalibrationData?
     
     // NEW: Video calibration tracking
-    private var videoCalibrationFrames: [CameraCalibrationData] = []
+    var videoCalibrationFrames: [CameraCalibrationData] = []
     
     
     init() {
@@ -83,18 +83,20 @@ class CameraModel: ObservableObject {
     
     // for movie recorded
     func handleCameraMovie() async {
-        let fileUrlStream = camera.movieFileStream
+        print("🎬 handleCameraMovie() started - listening for video files")
+        let fileUrlStream = arSession.videoStream  // CHANGED
         
         for await url in fileUrlStream {
+            print("🎬 Received video URL from stream: \(url)")
             Task { @MainActor in
                 movieFileUrl = url
                 
-                // NEW: Stop recording calibration when video stops
-                let frames = arSession.stopRecordingCalibration()
-                videoCalibrationFrames = frames
+                print("🎥 Video saved to: \(url)")
+                print("📊 Calibration frames available: \(videoCalibrationFrames.count)")
                 
-                // Save calibration data alongside video
-                await saveVideoCalibration(for: url, frames: frames)
+                await saveVideoCalibration(for: url, frames: videoCalibrationFrames)
+                
+                videoCalibrationFrames.removeAll()
             }
         }
     }
@@ -125,6 +127,8 @@ class CameraModel: ObservableObject {
     // MARK: - Save Methods
     
     private func saveVideoCalibration(for videoURL: URL, frames: [CameraCalibrationData]) async {
+        
+        print("[DEBUG] attempting to save calibratio ndata.")
         guard !frames.isEmpty else {
             print("No calibration data to save for video")
             return

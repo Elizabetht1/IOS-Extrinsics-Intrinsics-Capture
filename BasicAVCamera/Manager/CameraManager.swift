@@ -349,6 +349,14 @@ class CameraManager: NSObject {
             }
         }
     }
+    
+    func pausePreview() {
+        isPreviewPaused = true
+    }
+
+    func resumePreview() {
+        isPreviewPaused = false
+    }
 
 }
 
@@ -379,13 +387,14 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 extension CameraManager: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         if let error = error {
-            print("Error capturing photo: \(error.localizedDescription)")
+            print("❌ Error recording video: \(error.localizedDescription)")
             return
         }
+        print("✅ CameraManager: Video recorded to \(outputFileURL)")
         addToMovieFileStream?(outputFileURL)
+        print("✅ CameraManager: Added URL to stream")
     }
 }
-
 
 private enum RotationAngle: CGFloat {
     case portrait = 90

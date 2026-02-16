@@ -22,12 +22,22 @@ class CameraModel: ObservableObject {
     @Published var photoToken: PhotoData?
     @Published var movieFileUrl: URL?
     
+    // Add new property
+    @Published var useARPreview = false
+    
     // NEW: Current calibration data
     @Published var currentCalibrationData: CameraCalibrationData?
     
     // NEW: Video calibration tracking
     var videoCalibrationFrames: [CameraCalibrationData] = []
     
+    
+    
+
+    // Add new handler in init()
+    
+
+
     
     init() {
         Task {
@@ -50,6 +60,10 @@ class CameraModel: ObservableObject {
         Task {
             await handleARCalibration()
         }
+        
+        Task {
+            await handleARPreviews()
+        }
     }
     
     // MARK: - Existing Handlers
@@ -65,6 +79,19 @@ class CameraModel: ObservableObject {
             }
         }
     }
+    
+    // NEW method
+    func handleARPreviews() async {
+        for await ciImage in arSession.previewStream {
+            guard useARPreview else { continue }
+            Task { @MainActor in
+                let ciContext = CIContext()
+                guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+                self.previewImage = Image(decorative: cgImage, scale: 1, orientation: .up)
+            }
+        }
+    }
+
     
     // for photo token
     func handleCameraPhotos() async {
@@ -103,11 +130,9 @@ class CameraModel: ObservableObject {
     
     // NEW: Handle AR calibration stream
     func handleARCalibration() async {
-        let calibrationStream = arSession.calibrationStream
-        
-        for await calibrationData in calibrationStream {
-            Task { @MainActor in
-                currentCalibrationData = calibrationData
+        for await calibrationData in arSession.calibrationStream {
+            Task { @MainActor [weak self] in
+                self?.currentCalibrationData = calibrationData
             }
         }
     }
@@ -115,12 +140,15 @@ class CameraModel: ObservableObject {
     // MARK: - Video Recording with Calibration
     
     func startRecordingVideo() {
-        camera.startRecordingVideo()
+//        camera.startRecordingVideo()
         arSession.startRecordingCalibration()  // NEW: Start AR calibration recording
+        arSession.startRecordingVideo()  // NEW: Start AR calibration recording
     }
     
     func stopRecordingVideo() {
-        camera.stopRecordingVideo()
+//        camera.stopRecordingVideo()
+        arSession.stopRecordingVideo()
+//        arSession.stopRecordingCalibration()
         // Calibration stop is handled in handleCameraMovie when URL arrives
     }
     

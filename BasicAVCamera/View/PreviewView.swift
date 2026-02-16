@@ -124,6 +124,7 @@ struct PreviewView: View {
                     Button {
                         if isRecording {
                             isRecording = false
+                           
                             print("🔴 Stopping video recording")
                             
                             let frames = model.arSession.stopRecordingCalibration()
@@ -134,8 +135,10 @@ struct PreviewView: View {
                             }
                             
 //                            model.camera.stopRecordingVideo()
-                            model.arSession.stopRecordingVideo()
+                            model.stopRecordingVideo()
                             
+                            model.useARPreview = false  // Switch back to camera
+                            model.camera.resumePreview()
                             // Resume camera preview
 //                            model.camera.resumePreview()
                             
@@ -143,20 +146,29 @@ struct PreviewView: View {
                             isRecording = true
                             print("🔴 Starting video recording")
                             
+                            model.camera.pausePreview()
+                            model.useARPreview = true  // Switch to AR preview
+                            
+    
+                           
                             // Just pause preview, don't stop session
 //                            model.camera.pausePreview()c
                             
                             Task {
+                                
+                               
+                            
+                                
                                 try? await Task.sleep(nanoseconds: 500_000_000)
                                 
                                 
                                 
                                 print("📊 Starting AR calibration recording")
-                                model.arSession.startRecordingCalibration()
+//                                model.arSession.startRecordingCalibration()
                                 
                                 print("📷 Starting camera video")
-//                                model.camera.startRecordingVideo()
-                                model.arSession.startRecordingVideo()
+                                model.startRecordingVideo()
+//                                model.arSession.startRecordingVideo()
                             }
                         }
                     } label: {

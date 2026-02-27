@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import cv2 as cv
 import re 
+from tqdm import tqdm
 
 def load_json(fp):
     with open(fp,'r') as fin:
@@ -24,8 +25,7 @@ def load_video(fp, calibration_data = None):
         
         frame_rgb = frame.to_ndarray(format="rgb24")
         rgb.append(frame_rgb)
-        if idx == 0:
-            print(frame_rgb.shape)
+
         
         # check that this is a sensible match
         if calibration_data is not None:
@@ -38,22 +38,29 @@ def load_video(fp, calibration_data = None):
 
 def get_paired_data(root_dir,video_ext="mp4"):
     names = set()
-    for fp in os.listdir(root_dir):
+    all_fps = os.listdir(root_dir)
+    for fp in all_fps:
        path = Path(fp) 
        name = path.stem 
        name = name.replace("_calibration","")
-       names.add(name)
-    
-    
-    return [(os.path.join(root_dir,f'{name}.json'),os.path.join(root_dir,f'{name}.{video_ext}')) for name in names ]
+       
+       calib_fp = f'{name}_calibration.json'
+       vid_fp = f'{name}.{video_ext}'
+       
+       if (calib_fp in all_fps) and (vid_fp in all_fps) and name not in names:
+           names.add(name)
+           yield os.path.join(root_dir,calib_fp), os.path.join(root_dir,vid_fp) 
+       
     
 
-def main():
-    root_dir = '/Users/elizabethterveen/Desktop/lpwm.ExInt-Capture-2 2026-02-19 10:17.24.843.xcappdata/AppData/Documents'
-    outdir = os.path.join("parsed_videos",datetime.now().strftime("%d_%b_%Y_%I.%M"))
+def main(args):
+    outdir = os.path.join(args.outdir,datetime.now().strftime("%d_%b_%Y_%I.%M"))
     os.makedirs(outdir,exist_ok=True)
-    data_pairs = get_paired_data(root_dir,video_ext='mov')
-    for idx, (calibration_fp, video_fp) in enumerate(data_pairs):
+    data_pairs = get_paired_data(args.root_dir)
+    
+    
+    
+    for idx, (calibration_fp, video_fp) in tqdm(enumerate(data_pairs)):
         calibration_json = load_json(calibration_fp)
         video_rgb = load_video(video_fp)
         
@@ -62,7 +69,7 @@ def main():
         
         # write json data 
         with open(os.path.join(video_outdir,"calibration.json"),'w') as fout:
-            json.dump(calibration_json,fp=fout)
+            json.dump(calibration_json['frames'],fp=fout)
         
         # write video data
         for idx,frame in enumerate(video_rgb):
@@ -71,5 +78,13 @@ def main():
             frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
             cv.imwrite(frame_path,frame)
   
-if __name__ == "__main__":        
-    main()      
+if __name__ == "__main__":     
+    import argparse 
+    
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("--root_dir", "-d", required=True,help = "directory with calibration / video pairs")  
+    parser.add_argument("--outdir", "-o", help = "save location",default="parsed_videos")  
+    
+    args = parser.parse_args()
+    main(args)      

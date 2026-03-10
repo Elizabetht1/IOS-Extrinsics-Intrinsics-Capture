@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import ARKit
 
 
 class CameraManager: NSObject {
@@ -24,6 +25,13 @@ class CameraManager: NSObject {
     private var sessionQueue: DispatchQueue!
     
     // device related
+    
+    // --- NEW: add video capture device for camera intrinsics /extrinsitc capture
+    private var lpwmVideoDevice : AVCaptureDevice?;
+    private var lpwmVideoInput : AVCaptureDeviceInput?;
+    
+    
+    
     private var allCaptureDevices: [AVCaptureDevice] {
         AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTrueDepthCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera, .builtInDualWideCamera], mediaType: .video, position: .unspecified).devices
     }
@@ -117,12 +125,23 @@ class CameraManager: NSObject {
     
     
     override init() {
+        print("[DEBUG] initializing camera manager")
         super.init()
         // The value of this property is an AVCaptureSessionPreset indicating the current session preset in use by the receiver. The sessionPreset property may be set while the receiver is running.
         captureSession.sessionPreset = .low
         
         sessionQueue = DispatchQueue(label: "session queue")
-        captureDevice = availableCaptureDevices.first ?? AVCaptureDevice.default(for: .video)
+//        captureDevice = availableCaptureDevices.first ?? AVCaptureDevice.default(for: .video)
+//        lpwmVideoDevice = AVCaptureDevice.default(for: .video);
+//        do{
+//            let lpwmVideoInput = try AVCaptureDeviceInput(device: lpwmVideoDevice!)
+//                 if self.captureSession.canAddInput(lpwmVideoInput) {
+//                      self.captureSession.addInput(lpwmVideoInput)
+//                 }
+//        }
+//        catch{
+//                print("Error")
+//        }
         
     }
     
@@ -224,6 +243,12 @@ class CameraManager: NSObject {
                 photoOutputVideoConnection.videoRotationAngle = RotationAngle.portrait.rawValue
             }
             
+            
+            // --- NEW ---
+//            photoSettings.isDepthDataDeliveryEnabled = photoOutput.isDepthDataDeliverySupported
+//            photoSettings.isDualCameraDualPhotoDeliveryEnabled = true
+            // --- END NEW ---
+            
             photoOutput.capturePhoto(with: photoSettings, delegate: self)
         }
     }
@@ -262,9 +287,25 @@ class CameraManager: NSObject {
     
     private func configureCaptureSession(completionHandler: (_ success: Bool) -> Void) {
         
+        print("[DEBUG] Configuring capture session.\n")
+        
+        
+//        // __ NEW__ configure lpwm related things
+//        guard let lpwmVideoDevice = AVCaptureDevice.default(.builtInDualCamera,
+//            for: .video, position: .back)
+//            else { fatalError("No dual camera.") }
+//        guard let lpwmVideoInput = try? AVCaptureDeviceInput(device: lpwmVideoDevice),
+//            self.captureSession.canAddInput(lpwmVideoInput)
+//            else { fatalError("Can't add video input.") }
+        
+        
         var success = false
         
         self.captureSession.beginConfiguration()
+        
+        // __ NEW add lpwm video
+//        self.captureSession.addInput(lpwmVideoInput)
+      
         
         defer {
             self.captureSession.commitConfiguration()
@@ -282,6 +323,17 @@ class CameraManager: NSObject {
         let movieFileOutput = AVCaptureMovieFileOutput()
         
         let photoOutput = AVCapturePhotoOutput()
+        // --- NEW ----
+//        guard self.captureSession.canAddOutput(photoOutput)
+//            else { fatalError("Can't add photo output.") }
+//        self.captureSession.addOutput(photoOutput)
+//        self.captureSession.sessionPreset = .photo
+//        // Enable delivery of depth data after adding the output to the capture session.
+//        photoOutput.isDepthDataDeliveryEnabled = photoOutput.isDepthDataDeliverySupported
+//        guard photoOutput.isDepthDataDeliverySupported
+//        else { fatalError("Depth Delievery data not supported.") }
+        // --- END NEW ---
+        
         captureSession.sessionPreset = AVCaptureSession.Preset.photo
         
         let videoOutput = AVCaptureVideoDataOutput()

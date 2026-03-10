@@ -82,6 +82,56 @@ struct PreviewView: View {
             return "AR Tracking: Not Available"
         }
     }
+    
+    // NEW: Tracking status indicator
+    private func trackingStatusView() -> some View {
+        HStack {
+            Circle()
+                .fill(trackingStateColor)
+                .frame(width: 12, height: 12)
+            
+            Text(trackingStateText)
+                .font(.caption)
+                .foregroundColor(.white)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+    
+    private var trackingStateColor: Color {
+        switch model.arSession.trackingState {
+        case .normal:
+            return .green
+        case .limited:
+            return .yellow
+        case .notAvailable:
+            return .red
+        }
+    }
+    
+    private var trackingStateText: String {
+        switch model.arSession.trackingState {
+        case .normal:
+            return "AR Tracking: Ready"
+        case .limited(let reason):
+            switch reason {
+            case .excessiveMotion:
+                return "AR Tracking: Move Slower"
+            case .insufficientFeatures:
+                return "AR Tracking: Point at Textured Surface"
+            case .initializing:
+                return "AR Tracking: Initializing..."
+            case .relocalizing:
+                return "AR Tracking: Relocalizing..."
+            @unknown default:
+                return "AR Tracking: Limited"
+            }
+        case .notAvailable:
+            return "AR Tracking: Not Available"
+        }
+    }
 
     private func buttonsView() -> some View {
         GeometryReader { geometry in

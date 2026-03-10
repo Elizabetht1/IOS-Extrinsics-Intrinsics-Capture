@@ -19,27 +19,14 @@ struct CameraView: View {
                 SaveVideoView()
             } else {
                 PreviewView()
-                    .onAppear {
-//                        model.camera.isPreviewPaused = false
-                        model.useARPreview = true
-                    }
-                    .onDisappear {
-//                        model.camera.isPreviewPaused = true
-                        model.useARPreview = false
-                    }
             }
 
         }
         .task {
-            // Start both camera and AR session
-            
-            model.arSession.start()  // NEW: Start AR session
-//            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 sec
-//            await model.camera.start()
+            model.arSession.start()
         }
         .onDisappear {
-            // Stop AR session when view disappears
-            model.arSession.stop()  // NEW: Stop AR session
+            model.arSession.stop()
         }
         .ignoresSafeArea(.all)
         .environmentObject(model)

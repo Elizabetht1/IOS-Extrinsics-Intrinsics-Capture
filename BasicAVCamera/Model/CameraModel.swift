@@ -1,8 +1,6 @@
 //
-//  CameraModel.swift (Updated)
+//  CameraModel.swift
 //  BasicAVCamera
-//
-//  Updated to integrate ARKit calibration
 //
 
 import AVFoundation
@@ -11,64 +9,47 @@ import Photos
 
 
 class CameraModel: ObservableObject {
-    
+
     let camera = CameraManager()
-    let arSession = ARSessionManager()  // NEW: AR Session Manager
+    let arSession = ARSessionManager()
     var photoLibraryManager: PhotoLibraryManager?
-    
+
     @Published var cameraMode: CameraMode = .photo
-    
+
     @Published var previewImage: Image?
     @Published var photoToken: PhotoData?
     @Published var movieFileUrl: URL?
-    
-    // Add new property
-    @Published var useARPreview = false
-    
-    // NEW: Current calibration data
+
     @Published var currentCalibrationData: CameraCalibrationData?
-    
-    // NEW: Video calibration tracking
-    var videoCalibrationFrames: [CameraCalibrationData] = []
-    
-    
-    
 
-    // Add new handler in init()
-    
-
-
-    
     init() {
         Task {
             self.photoLibraryManager = await PhotoLibraryManager()
         }
-        
+
         Task {
             await handleCameraPreviews()
         }
-        
+
         Task {
             await handleCameraPhotos()
         }
-        
+
         Task {
             await handleCameraMovie()
         }
-        
-        // NEW: Handle AR calibration stream
+
         Task {
             await handleARCalibration()
         }
-        
+
         Task {
             await handleARPreviews()
         }
     }
-    
-    // MARK: - Existing Handlers
-    
-    // for preview camera output
+
+    // MARK: - Preview Handlers
+
     func handleCameraPreviews() async {
         let imageStream = camera.previewStream
             .map { $0.image }
@@ -79,92 +60,74 @@ class CameraModel: ObservableObject {
             }
         }
     }
-    
-    // NEW method
+
+    @MainActor
     func handleARPreviews() async {
-        for await ciImage in arSession.previewStream {
-            guard useARPreview else { continue }
-            Task { @MainActor in
-                let ciContext = CIContext()
-                guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
-                self.previewImage = Image(decorative: cgImage, scale: 1, orientation: .up)
-            }
+        for await cgImage in arSession.previewStream {
+            self.previewImage = Image(decorative: cgImage, scale: 1, orientation: .up)
         }
     }
 
-    
-    // for photo token
+    // MARK: - Photo Handling
+
     func handleCameraPhotos() async {
         let unpackedPhotoStream = camera.photoStream
             .compactMap { self.unpackPhoto($0) }
-        
+
         for await photoData in unpackedPhotoStream {
             Task { @MainActor in
-                // NEW: Attach current calibration data to photo
                 var updatedPhotoData = photoData
                 updatedPhotoData.calibrationData = arSession.getCurrentCalibrationData()
                 photoToken = updatedPhotoData
             }
         }
     }
-    
-    // for movie recorded
+
+    // MARK: - Video Handling
+
     func handleCameraMovie() async {
-        print("🎬 handleCameraMovie() started - listening for video files")
-        let fileUrlStream = arSession.videoStream  // CHANGED
-        
-        for await url in fileUrlStream {
-            print("🎬 Received video URL from stream: \(url)")
+        for await url in arSession.videoStream {
             Task { @MainActor in
                 movieFileUrl = url
-                
-                print("🎥 Video saved to: \(url)")
-                print("📊 Calibration frames available: \(videoCalibrationFrames.count)")
-                
-                await saveVideoCalibration(for: url, frames: videoCalibrationFrames)
-                
-                videoCalibrationFrames.removeAll()
             }
         }
     }
-    
-    // NEW: Handle AR calibration stream
+
+    // MARK: - Calibration Stream
+
+    @MainActor
     func handleARCalibration() async {
         for await calibrationData in arSession.calibrationStream {
-            Task { @MainActor [weak self] in
-                self?.currentCalibrationData = calibrationData
+            self.currentCalibrationData = calibrationData
+        }
+    }
+
+    // MARK: - Video Recording
+
+    func startRecordingVideo() {
+        arSession.startRecording()
+    }
+
+    func stopRecordingVideo() {
+        arSession.stopRecording { [weak self] url, frames in
+            guard let self = self, let url = url else { return }
+            Task { @MainActor in
+                await self.saveVideoCalibration(for: url, frames: frames)
             }
         }
     }
-    
-    // MARK: - Video Recording with Calibration
-    
-    func startRecordingVideo() {
-//        camera.startRecordingVideo()
-        arSession.startRecordingCalibration()  // NEW: Start AR calibration recording
-        arSession.startRecordingVideo()  // NEW: Start AR calibration recording
-    }
-    
-    func stopRecordingVideo() {
-//        camera.stopRecordingVideo()
-        arSession.stopRecordingVideo()
-//        arSession.stopRecordingCalibration()
-        // Calibration stop is handled in handleCameraMovie when URL arrives
-    }
-    
+
     // MARK: - Save Methods
-    
+
     private func saveVideoCalibration(for videoURL: URL, frames: [CameraCalibrationData]) async {
-        
-        print("[DEBUG] attempting to save calibratio ndata.")
         guard !frames.isEmpty else {
             print("No calibration data to save for video")
             return
         }
-        
+
         let directory = videoURL.deletingLastPathComponent()
         let fileName = videoURL.lastPathComponent
-        
+
         do {
             try await arSession.saveVideoCalibrationData(
                 frames: frames,
@@ -175,18 +138,18 @@ class CameraModel: ObservableObject {
             print("Failed to save video calibration: \(error)")
         }
     }
-    
+
     func savePhotoCalibration(for photoData: PhotoData, fileName: String) async {
         guard let calibrationData = photoData.calibrationData else {
             print("No calibration data available for photo")
             return
         }
-        
+
         guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             print("Cannot access documents directory")
             return
         }
-        
+
         do {
             try await arSession.savePhotoCalibrationData(
                 calibrationData,
@@ -198,18 +161,18 @@ class CameraModel: ObservableObject {
         }
     }
 
-    // MARK: - Existing Helper Methods
-    
+    // MARK: - Helper Methods
+
     private func unpackPhoto(_ photo: AVCapturePhoto) -> PhotoData? {
         guard let imageData = photo.fileDataRepresentation() else { return nil }
         guard let cgImage = photo.cgImageRepresentation(),
               let metadataOrientation = photo.metadata[String(kCGImagePropertyOrientation)] as? UInt32,
               let cgImageOrientation = CGImagePropertyOrientation(rawValue: metadataOrientation)
         else { return nil }
-        
+
         let imageOrientation = UIImage.Orientation(cgImageOrientation)
         let image = Image(uiImage: UIImage(cgImage: cgImage, scale: 1, orientation: imageOrientation))
-        
+
         let photoDimensions = photo.resolvedSettings.photoDimensions
         let imageSize = (width: Int(photoDimensions.width), height: Int(photoDimensions.height))
 

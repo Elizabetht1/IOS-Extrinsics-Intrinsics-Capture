@@ -30,11 +30,6 @@ struct SaveVideoView: View {
                 .onAppear {
                     print(url)
                 }
-                .onDisappear {
-                    Task {
-                        try? FileManager().removeItem(at: url)
-                    }
-                }
         }
     }
     
@@ -43,7 +38,7 @@ struct SaveVideoView: View {
             Button {
                 model.movieFileUrl = nil
             } label: {
-                Image(systemName: "arrowshape.backward.fill") // camera.fill
+                Image(systemName: "arrowshape.backward.fill")
             }
 
             Spacer()
@@ -51,8 +46,8 @@ struct SaveVideoView: View {
             Button {
                 guard let url = model.movieFileUrl else { return }
                 Task {
-                    await model.photoLibraryManager?.saveVideo(fileUrl:url)
-                    
+                    await model.photoLibraryManager?.saveVideo(fileUrl: url)
+
                     withAnimation {
                         self.saved = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {

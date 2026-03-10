@@ -73,9 +73,12 @@ def main(args):
         
         # write video data
         for idx,frame in enumerate(video_rgb):
+            
             frame_path = os.path.join(video_outdir,f"{idx}.png")
             frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
             frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
+            if idx == 0:
+                print(f"[DEBUG] {frame.shape}")
             cv.imwrite(frame_path,frame)
   
 if __name__ == "__main__":     

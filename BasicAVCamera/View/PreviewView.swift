@@ -31,15 +31,6 @@ struct PreviewView: View {
                     .background(.gray.opacity(0.4))
             }
             .background(Color.black)
-            .onAppear {
-                            // Start camera when preview appears
-                            Task {
-                                print("📷 PreviewView appeared - starting camera")
-//                                await model.camera.start()
-                                model.arSession.start()
-                            }
-                        }
-
     }
     
     // NEW: Tracking status indicator
@@ -125,50 +116,10 @@ struct PreviewView: View {
                     Button {
                         if isRecording {
                             isRecording = false
-                           
-                            print("🔴 Stopping video recording")
-                            
-                            let frames = model.arSession.stopRecordingCalibration()
-                            print("📊 Captured \(frames.count) calibration frames")
-                            
-                            Task { @MainActor in
-                                model.videoCalibrationFrames = frames
-                            }
-                            
-//                            model.camera.stopRecordingVideo()
                             model.stopRecordingVideo()
-                            
-//                            model.useARPreview = false  // Switch back to camera
-//                            model.camera.resumePreview()
-                            // Resume camera preview
-//                            model.camera.resumePreview()
-                            
                         } else {
                             isRecording = true
-                            print("🔴 Starting video recording")
-                            
-//                            model.camera.pausePreview()
-//                            model.useARPreview = true  // Switch to AR preview
-                            
-    
-                           
-                            // Just pause preview, don't stop session
-//                            model.camera.pausePreview()
-                            
-                            Task {
-            
-            
-//                                try? await Task.sleep(nanoseconds: 500_000_000)
-                                
-                                
-                                
-                                print("📊 Starting AR calibration recording")
-//                                model.arSession.startRecordingCalibration()
-                                
-                                print("📷 Starting camera video")
-                                model.startRecordingVideo()
-//                              model.arSession.startRecordingVideo()
-                            }
+                            model.startRecordingVideo()
                         }
                     } label: {
                         Image(systemName: "record.circle")
@@ -176,7 +127,6 @@ struct PreviewView: View {
                             .foregroundStyle(isRecording ? Color.red : Color.white)
                             .font(.system(size: 50))
                     }
-                    
                 }
 
                 Spacer()
@@ -185,6 +135,28 @@ struct PreviewView: View {
                     model.camera.switchCaptureDevice()
                 } label: {
                     Image(systemName: "arrow.triangle.2.circlepath")
+                }
+                
+                Button {
+                    Task {
+                        if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                            print("📂 Documents directory: \(documentsURL.path)")
+                            
+                            do {
+                                let files = try FileManager.default.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: [.fileSizeKey], options: [])
+                                print("📂 Found \(files.count) files:")
+                                for file in files {
+                                    let attributes = try? FileManager.default.attributesOfItem(atPath: file.path)
+                                    let size = attributes?[.size] as? Int64 ?? 0
+                                    print("  - \(file.lastPathComponent) (\(size) bytes)")
+                                }
+                            } catch {
+                                print("❌ Error listing files: \(error)")
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "folder")
                 }
 
             }

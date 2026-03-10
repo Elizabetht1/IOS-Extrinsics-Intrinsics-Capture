@@ -3,6 +3,8 @@
 <plist version="1.0">
 <dict>
 	<key>UIFileSharingEnabled</key>
-	<false/>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

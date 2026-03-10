@@ -81,7 +81,7 @@ struct CameraCalibrationData: Codable {
     
     /// Tracking state reason (if limited)
     var trackingStateReason: String?
-    
+
     // MARK: - Initializer from ARFrame
     
     init(from arFrame: ARFrame, frameIndex: Int? = nil) {
